@@ -39,9 +39,9 @@ def scan(url):
     result = result.replace('/','')
     try:
         if osType == "Windows":
-            p = subprocess.check_output("15_xray webscan --browser-crawler {} --html-output {}/{}.html".format(url, path, result), shell=True, stdout=subprocess.PIPE) 
+            p = subprocess.check_output("xray webscan --browser-crawler {} --html-output {}/{}.html".format(url, path, result), shell=True, stdout=subprocess.PIPE) 
         else:
-            p = subprocess.Popen("./15_xray webscan --browser-crawler {} --html-output {}/{}.html".format(url, path, result), shell=True, stdout=subprocess.PIPE) 
+            p = subprocess.Popen("./xray webscan --browser-crawler {} --html-output {}/{}.html".format(url, path, result), shell=True, stdout=subprocess.PIPE) 
             # print('1')
         out, err = p.communicate()
 
