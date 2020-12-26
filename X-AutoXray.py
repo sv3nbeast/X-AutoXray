@@ -2,7 +2,7 @@ import time,platform
 import os,sys,subprocess
 import datetime,math
 import argparse
-from colorama import Fore, Style
+from colorama import Fore, Style, init
 
 target = []
 alreadyTarget = []
@@ -24,6 +24,8 @@ __  __       _         _      __  __
 def scan(url):
 
     global alreadyTarget
+
+    init(autoreset=True)
     nowTime = str(time.strftime('%H:%M:%S',time.localtime(time.time())))
     print(Fore.GREEN + "[{}] ".format(nowTime),end="")
     print(Style.RESET_ALL,end="")
@@ -37,13 +39,15 @@ def scan(url):
     result = name.split(':')
     result = result[0]
     result = result.replace('/','')
+
+    fileName = checkFileName(result,nowTime)
     try:
         if osType == "Windows":
-            p = subprocess.check_output("xray webscan --browser-crawler {} --html-output {}/{}.html".format(url, path, result), shell=True, stdout=subprocess.PIPE) 
+            p = subprocess.check_output("xray webscan --browser-crawler {} --html-output {}".format(url, fileName), shell=True) 
+
         else:
-            p = subprocess.Popen("./xray webscan --browser-crawler {} --html-output {}/{}.html".format(url, path, result), shell=True, stdout=subprocess.PIPE) 
-            # print('1')
-        out, err = p.communicate()
+            p = subprocess.Popen("./xray webscan --browser-crawler {} --html-output {}".format(url, fileName), shell=True, stdout=subprocess.PIPE) 
+            out, err = p.communicate()
 
 
     except KeyboardInterrupt:
@@ -52,6 +56,23 @@ def scan(url):
 
     alreadyTarget.append(url)
     
+def checkFileName(result,nowTime):
+
+    if osType == 'Windows':
+        nowTime = nowTime.replace(':','-')
+        fileName = '{}\{}.html'.format(path,result)
+    else:
+        fileName = '{}/{}.html'.format(path,result)
+
+    if not os.path.exists(fileName):
+        pass
+    else:
+        fileName = '{}\{}.html'.format(path,'[' + nowTime + ']' + result)
+        print(Fore.GREEN + "[{}] ".format(nowTime),end="")
+        print(Style.RESET_ALL,end="")
+        print("检测到已存在{}.html文件 ".format(result) + Fore.GREEN + "=>" + Style.RESET_ALL + " 更改文件名为{}.html".format('[' + nowTime + ']' + result) + "\r")
+    
+    return fileName
 
 def stop(target):
 
@@ -77,7 +98,7 @@ def main(file):
     global path
     
     if osType == "Windows":
-        path.replace('\\','/')
+        path = path.replace('/','\\')
     else:
         pass
 
