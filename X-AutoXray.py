@@ -1,8 +1,7 @@
-import time,platform
+import time,platform,requests
 import os,sys,subprocess
-import datetime,math
-import argparse
 from colorama import Fore, Style, init
+from concurrent.futures import ThreadPoolExecutor,as_completed
 
 target = []
 alreadyTarget = []
@@ -24,12 +23,14 @@ __  __       _         _      __  __
 def scan(url):
 
     global alreadyTarget
-
-    init(autoreset=True)
+    global target
+    # init(autoreset=True)
     nowTime = str(time.strftime('%H:%M:%S',time.localtime(time.time())))
     print(Fore.GREEN + "[{}] ".format(nowTime),end="")
     print(Style.RESET_ALL,end="")
     print("开始扫描目标 " + Fore.GREEN + "=>" + Style.RESET_ALL + " {}".format(url) + "\r")
+
+    url = getHTTP(url)
 
     if 'http://' in url:
         name = url.replace('http://','')
@@ -39,23 +40,44 @@ def scan(url):
     result = name.split(':')
     result = result[0]
     result = result.replace('/','')
-
+    
+    # print(url)
     fileName = checkFileName(result,nowTime)
     try:
         if osType == "Windows":
             p = subprocess.check_output("xray webscan --browser-crawler {} --html-output {}".format(url, fileName), shell=True) 
-
         else:
+            # os.system("./17_xray webscan --browser-crawler {} --html-output {}".format(url, fileName))
             p = subprocess.Popen("./xray webscan --browser-crawler {} --html-output {}".format(url, fileName), shell=True, stdout=subprocess.PIPE) 
             out, err = p.communicate()
-
-
+            target.remove(url)
     except KeyboardInterrupt:
         stop(target)
         return False
 
     alreadyTarget.append(url)
-    
+
+def getHTTP(url): #在给出的目标没有http前缀时，获得目标究竟是https还是http
+
+    if 'http' not in url:
+        try:
+            lenHttp = len(requests.get('http://' + url,timeout=10).content)
+        except:
+            lenHttp = 0
+            url = "https://" + url
+        try:
+            lenHttps = len(requests.get('https://' + url,timeout=10).content)
+        except:
+            lenHttps = 0
+            url = "http://" + url
+
+        if lenHttp == lenHttps or lenHttps > lenHttp:
+            url = "https://" + url
+        else:
+            url = "http://" + url
+
+    return url
+
 def checkFileName(result,nowTime):
 
     if osType == 'Windows':
@@ -112,14 +134,18 @@ def main(file):
             for i in data:
                 url = i.strip('\n')
                 target.append(url)
-
             print("[+ Hi, Wish you good luck!  本次扫描目标共{}个".format(len(target)) + '\n')
+            executor = ThreadPoolExecutor(max_workers=6)  # 设置线程池并发数量
+            all_task = [executor.submit(scan, x.strip()) for x in data]
+            for future in as_completed(all_task):
+                data = future.result()
 
-            for i in target.copy():
-                speed = scan(i)
-                if speed == False:
-                    break
-                target.remove(i)
+            # for i in target.copy():
+
+            #     speed = scan(i)
+            #     if speed == False:
+            #         break
+            #     target.remove(i)
             
     except KeyboardInterrupt:
         stop(target)
