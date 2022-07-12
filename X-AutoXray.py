@@ -47,10 +47,30 @@ def scan(url):
         if osType == "Windows":
             p = subprocess.check_output("xray webscan --browser-crawler {} --html-output {}".format(url, fileName), shell=True) 
         else:
-            # os.system("./17_xray webscan --browser-crawler {} --html-output {}".format(url, fileName))
             p = subprocess.Popen("./xray webscan --browser-crawler {} --html-output {}".format(url, fileName), shell=True, stdout=subprocess.PIPE) 
-            out, err = p.communicate()
+            # out, err = p.communicate()
+
+            pid = str(p.pid)
+            starttime = time.time()
+            nowtime = starttime
+            while True:
+                try:
+                    #一直在循环里面运行 ret==None 的意思就是在运行。
+                    ret = subprocess.Popen.poll(p)
+                    # ret==0 代表程序正常结束。
+                    if ret == 0:
+                        break
+                    #扫描超过15分钟就超时(这个后期多次实验后可以继续调优)
+                    if(nowtime > starttime + 900):
+                        os.system("pkill -TERM -P " + pid)
+                        print(Fore.GREEN + "[{}] ".format(nowTime),end="")
+                        print(" 目标 {} 扫描超过15分钟,已自行终结扫描进程".format(url))
+                        break
+                    nowtime = time.time()
+                except Exception as e:
+                    break
             target.remove(url)
+
     except KeyboardInterrupt:
         stop(target)
         return False
@@ -89,7 +109,10 @@ def checkFileName(result,nowTime):
     if not os.path.exists(fileName):
         pass
     else:
-        fileName = '{}\{}.html'.format(path,'[' + nowTime + ']' + result)
+        if osType == 'Windows':
+            fileName = '{}\{}.html'.format(path,'[' + nowTime + ']' + result)
+        else:
+             fileName = '{}/{}.html'.format(path,'[' + nowTime + ']' + result)
         print(Fore.GREEN + "[{}] ".format(nowTime),end="")
         print(Style.RESET_ALL,end="")
         print("检测到已存在{}.html文件 ".format(result) + Fore.GREEN + "=>" + Style.RESET_ALL + " 更改文件名为{}.html".format('[' + nowTime + ']' + result) + "\r")
